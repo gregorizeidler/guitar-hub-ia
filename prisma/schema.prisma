@@ -1,0 +1,180 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  city        String?
+  skillLevel  SkillLevel @default(BEGINNER)
+  budget      Int?
+  playingStyle String?
+  playingLocation String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  rigs        Rig[]
+  reviews     Review[]
+  listings    Listing[]
+  chatSessions ChatSession[]
+  
+  @@map("users")
+}
+
+model Gear {
+  id          String   @id @default(cuid())
+  type        GearType
+  brand       String
+  model       String
+  description String?
+  specs       Json?
+  averagePrice Float?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  signalChains SignalChain[]
+  reviews     Review[]
+  listings    Listing[]
+  
+  @@map("gear")
+}
+
+model Rig {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  genre       String?
+  description String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signalChains SignalChain[]
+  audioClips   AudioClip[]
+  
+  @@map("rigs")
+}
+
+model SignalChain {
+  id       String @id @default(cuid())
+  rigId    String
+  gearId   String
+  order    Int
+  settings Json?
+  
+  // Relacionamentos
+  rig  Rig  @relation(fields: [rigId], references: [id], onDelete: Cascade)
+  gear Gear @relation(fields: [gearId], references: [id])
+  
+  @@unique([rigId, order])
+  @@map("signal_chains")
+}
+
+model AudioClip {
+  id       String @id @default(cuid())
+  rigId    String
+  url      String
+  duration Float?
+  createdAt DateTime @default(now())
+  
+  // Relacionamentos
+  rig Rig @relation(fields: [rigId], references: [id], onDelete: Cascade)
+  
+  @@map("audio_clips")
+}
+
+model Review {
+  id       String @id @default(cuid())
+  userId   String
+  gearId   String
+  rating   Int    @db.SmallInt
+  pros     String?
+  cons     String?
+  comment  String?
+  createdAt DateTime @default(now())
+  
+  // Relacionamentos
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gear Gear @relation(fields: [gearId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, gearId])
+  @@map("reviews")
+}
+
+model Listing {
+  id        String      @id @default(cuid())
+  userId    String
+  gearId    String
+  price     Float
+  condition Condition
+  status    ListingStatus @default(ACTIVE)
+  description String?
+  imageUrls Json?
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gear Gear @relation(fields: [gearId], references: [id])
+  
+  @@map("listings")
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  messages  Json
+  context   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("chat_sessions")
+}
+
+// Enums
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  PROFESSIONAL
+}
+
+enum GearType {
+  GUITAR
+  AMP
+  PEDAL
+  CABINET
+  ACCESSORY
+}
+
+enum Condition {
+  NEW
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  INACTIVE
+}
